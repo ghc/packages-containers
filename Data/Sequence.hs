@@ -133,7 +133,6 @@ module Data.Sequence (
     -- * Transformations
     mapWithIndex,   -- :: (Int -> a -> b) -> Seq a -> Seq b
     reverse,        -- :: Seq a -> Seq a
-    splitTraverse,  -- :: (Int -> s -> (s, s)) -> (s -> a -> b) -> s -> Seq a -> Seq b
     -- ** Zips
     zip,            -- :: Seq a -> Seq b -> Seq (a, b)
     zipWith,        -- :: (a -> b -> c) -> Seq a -> Seq b -> Seq c
@@ -257,9 +256,64 @@ instance Monad Seq where
 
 instance Applicative Seq where
     pure = singleton
-    fs <*> xs = foldl' add empty fs
-      where add ys f = ys >< fmap f xs
+
+    Seq Empty <*> _ = empty
+    _ <*> Seq Empty = empty
+    Seq (Single (Elem f)) <*> xs = fmap f xs
+    fs <*> Seq (Single (Elem x)) = fmap ($x) fs
+    fs <*> xs = splitTraverse splitCPs
+                              (\s _ -> uncurry ($) (getSingletonCPs s))
+                              (createCPs fs xs)
+                              (replicate (length fs * length xs) ())
+
     xs *> ys = replicateSeq (length xs) ys
+
+-- The splitCPs code below, for splitting ragged-ended Cartesian products,
+-- was generously provided by Joachim Breitner.
+
+data CPs x y =
+      CPs (Seq x)
+          (Seq y)
+          {-# UNPACK #-} !Int {- beginning column -}
+          {-# UNPACK #-} !Int {- last column -}
+    | SingleCPs x (Seq y)
+#ifdef TESTING
+    deriving Show
+#endif
+
+-- Note: The total length of CPs xs ys fc lc  is
+-- (length xs - 1) * length ys - fc + lc + 1
+
+-- Create a non-trivial Cps given two sequences
+createCPs :: Seq x -> Seq y -> CPs x y
+createCPs xs ys = CPs xs ys 0 (length ys - 1)
+
+-- Smart constructor
+mkCPs :: Seq x -> Seq y -> Int -> Int -> CPs x y
+mkCPs (Seq (Single (Elem x))) ys fc lc = SingleCPs x (drop fc $ take (lc+1) ys)
+mkCPs xs ys fc lc = CPs xs ys fc lc
+
+splitCPs:: Int -> CPs x y -> (CPs x y, CPs x y)
+splitCPs n (SingleCPs x ys)
+    = ( SingleCPs x ys1, SingleCPs x ys2 )
+  where (ys1, ys2) = splitAt n ys
+splitCPs n (CPs xs ys fc lc)
+    = ( mkCPs (take r_end xs)   ys fc      c_end
+      , mkCPs (drop r_begin xs) ys c_begin lc
+      )
+  where
+    -- Coordinates of the beginning of the second chunk
+    (r_begin,  -- number of rows that do not go into the second chunk
+     c_begin) = (n + fc) `quotRem` length ys
+
+    -- Coordinates of the end of the first chunk
+    r_end | c_begin == 0 = r_begin     -- cut nicely along rows, keep the other rows
+          | otherwise    = r_begin + 1 -- we need to keep one row in both chunks
+    c_end = (c_begin - 1 + length ys) `rem` length ys
+
+getSingletonCPs :: CPs x y -> (x, y)
+getSingletonCPs (SingleCPs x ys) = (x, getSingleton ys)
+getSingletonCPs _ = error "getSingletonCPs: Not a singleton"
 
 instance MonadPlus Seq where
     mzero = empty
@@ -1370,7 +1424,6 @@ mapWithIndex# f (Seq xs) = Seq $ mapWithIndexTree# (\s (Elem a) -> Elem (f s a))
       !(I# sb) = size b
       !sPsa = s +# sa
       !sPsab = sPsa +# sb
-      
 #endif
 
 -- | /O(n)/. Convert a given sequence length and a function representing that
