@@ -12,7 +12,8 @@ main = do
     let s10 = S.fromList [1..10] :: S.Seq Int
         s100 = S.fromList [1..100] :: S.Seq Int
         s1000 = S.fromList [1..1000] :: S.Seq Int
-    rnf [s10, s100, s1000] `seq` return ()
+        s10000 = S.fromList [1..10000] :: S.Seq Int
+    rnf [s10, s100, s1000, s10000] `seq` return ()
     let g = mkStdGen 1
     let rlist n = map (`mod` (n+1)) (take 10000 (randoms g)) :: [Int]
         r10 = rlist 10
@@ -34,6 +35,11 @@ main = do
          [ bench "ix10000/5000" $ nf (\size -> S.fromFunction size id `S.index` (size `div` 2)) 10000
          , bench "nf100" $ nf (\size -> S.fromFunction size id) 100
          , bench "nf10000" $ nf (\size -> S.fromFunction size id) 10000
+         ]
+      , bgroup "mapWithIndex"
+         [ bench "ix10000/5000" $ nf (S.mapWithIndex (+)) s10000
+         , bench "nf100" $ nf (S.mapWithIndex (+)) s100
+         , bench "nf10000" $ nf (S.mapWithIndex (+)) s10000
          ]
       ]
 
