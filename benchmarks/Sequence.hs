@@ -29,7 +29,13 @@ main = do
          [ bench "ix10000/5000" $ nf (\(xs,ys) -> S.zip xs ys `S.index` 5000) (S.replicate 10000 (), S.fromList [1..10000::Int])
          , bench "nf150" $ nf (uncurry S.zip) (S.fromList [1..150::Int], S.replicate 150 ())
          , bench "nf10000" $ nf (uncurry S.zip) (S.fromList [1..10000::Int], S.replicate 10000 ())
-         ] ]
+         ]
+      , bgroup "fromFunction"
+         [ bench "ix10000/5000" $ nf (\size -> S.fromFunction size id `S.index` (size `div` 2)) 10000
+         , bench "nf100" $ nf (\size -> S.fromFunction size id) 100
+         , bench "nf10000" $ nf (\size -> S.fromFunction size id) 10000
+         ]
+      ]
 
 -- splitAt+append: repeatedly cut the sequence at a random point
 -- and rejoin the pieces in the opposite order.
