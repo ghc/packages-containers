@@ -1,5 +1,10 @@
 # Changelog for [`containers` package](http://github.com/haskell/containers)
 
+## 0.5.8.2
+
+  * Fix completely incorrect implementations of `restrictKeys` and
+    `withoutKeys`.
+
 ## 0.5.8.1
 
 ### General package changes
