@@ -16,6 +16,20 @@
   Li-Yao Xia and Bertram Felgenhauer for helping to clean up and begin
   to document this rather tricky code.
 
+* Speed up `fromList` and related functions in `Data.IntSet`, `Data.IntMap`
+  and `Data.IntMap.Strict` (Thanks, Bertram Felgenhauer).
+
+* Use `count{Leading,Trailing}Zeros` in `Data.IntSet` internals (Thanks, Alex
+  Biehl).
+
+* Reduce usage of the `Forest` type synonym in `Data.Tree` (Thanks, David
+  Feuer).
+
+* Improve documentation (Thanks to Daniel Wagner, Johannes Waldmann, Steve Mao).
+
+* Improvements to the testsuite and benchmarks (Thanks, Bertram Felgenhauer,
+  Simon Jakobi).
+
 ## 0.6.2.1
 
 * Add `disjoint` for `Map` and `IntMap` (Thanks, Simon Jakobi).
